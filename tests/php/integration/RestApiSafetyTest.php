@@ -26,12 +26,27 @@ class RestApiSafetyTest extends WP_UnitTestCase {
         $this->assertSame('rest_forbidden', $response->get_data()['code']);
     }
 
-    public function test_settings_route_returns_rate_limited_when_threshold_is_hit(): void {
+    public function test_settings_route_ignores_chat_rate_limit_budget(): void {
         $user_id = self::factory()->user->create(['role' => 'administrator']);
         wp_set_current_user($user_id);
         set_transient("waa_rate_{$user_id}", WAA_RATE_LIMIT, MINUTE_IN_SECONDS);
 
         $request = new WP_REST_Request('GET', '/wp-admin-agent/v1/settings');
+        $response = rest_get_server()->dispatch($request);
+
+        $this->assertSame(200, $response->get_status());
+    }
+
+    public function test_chat_route_returns_rate_limited_when_threshold_is_hit(): void {
+        $user_id = self::factory()->user->create(['role' => 'administrator']);
+        wp_set_current_user($user_id);
+        set_transient("waa_rate_{$user_id}", WAA_RATE_LIMIT, MINUTE_IN_SECONDS);
+
+        $request = new WP_REST_Request('POST', '/wp-admin-agent/v1/chat');
+        $request->set_body(wp_json_encode([
+            'message' => 'hello',
+        ]));
+        $request->set_header('content-type', 'application/json');
         $response = rest_get_server()->dispatch($request);
 
         $this->assertSame(429, $response->get_status());

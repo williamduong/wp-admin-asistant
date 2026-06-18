@@ -1,7 +1,30 @@
 const { restUrl, nonce } = window.waaData ?? {};
 
+async function readErrorMessage(response) {
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+        try {
+            const payload = await response.json();
+            return payload?.message
+                ?? payload?.error
+                ?? payload?.data?.message
+                ?? `Request failed with status ${response.status}.`;
+        } catch {
+            return `Request failed with status ${response.status}.`;
+        }
+    }
+
+    try {
+        const text = (await response.text()).trim();
+        return text || `Request failed with status ${response.status}.`;
+    } catch {
+        return `Request failed with status ${response.status}.`;
+    }
+}
+
 export async function chatStream(message, history, conversationId, signal, confirmation = null, workflow = null) {
-    return fetch(`${restUrl}chat`, {
+    const response = await fetch(`${restUrl}chat`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -17,6 +40,12 @@ export async function chatStream(message, history, conversationId, signal, confi
         }),
         signal,
     });
+
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+    }
+
+    return response;
 }
 
 export async function apiFetch(path, options = {}) {
@@ -29,8 +58,7 @@ export async function apiFetch(path, options = {}) {
         },
     });
     if (!res.ok) {
-        const body = await res.text();
-        throw new Error(body);
+        throw new Error(await readErrorMessage(res));
     }
     return res.json();
 }

@@ -194,6 +194,33 @@ describe('useChat', () => {
         expect(updateConversationMock.mock.calls[0][0]).toBe(77);
     });
 
+    it('preserves a readable error message when the chat request is rate limited', async () => {
+        chatStreamMock.mockRejectedValue(new Error('Too many requests. Try again in a minute.'));
+        createConversationMock.mockResolvedValue({ id: 314 });
+        updateConversationMock.mockResolvedValue({ success: true });
+
+        const { result } = await importHook();
+
+        await act(async () => {
+            await result.current.sendMessage('Please continue');
+        });
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.messages.at(-1)).toMatchObject({
+            role: 'assistant',
+            content: 'Too many requests. Try again in a minute.',
+            isError: true,
+        });
+        expect(updateConversationMock).toHaveBeenCalledTimes(1);
+        expect(updateConversationMock.mock.calls[0][1].messages.at(-1)).toMatchObject({
+            content: 'Too many requests. Try again in a minute.',
+            isError: true,
+        });
+    });
+
     it('marks async tool results as queued and preserves follow-up metadata', async () => {
         chatStreamMock.mockResolvedValue({ body: { mock: true } });
         createConversationMock.mockResolvedValue({ id: 91 });

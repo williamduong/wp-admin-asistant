@@ -76,10 +76,18 @@ class WAA_REST_API {
         if (!current_user_can('manage_options')) {
             return new WP_Error('rest_forbidden', 'Insufficient permissions.', ['status' => 403]);
         }
-        if (!(new WAA_Rate_Limiter())->check()) {
+        if ($this->should_rate_limit($request) && !(new WAA_Rate_Limiter())->check()) {
             return new WP_Error('rate_limited', 'Too many requests. Try again in a minute.', ['status' => 429]);
         }
         return true;
+    }
+
+    private function should_rate_limit(WP_REST_Request $request): bool {
+        $route = $request->get_route();
+
+        return $route === '/' . self::NS . '/chat'
+            || $route === '/' . self::NS . '/mcp'
+            || $route === '/' . self::NS . '/test-connection';
     }
 
     public function handle_chat(WP_REST_Request $request): void {

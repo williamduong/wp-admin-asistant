@@ -261,6 +261,7 @@ export function useChat() {
         let displayText       = '';
         let displayToolCalls  = [];
         let finalMessageConfirmation = null;
+        let terminalErrorMessage = '';
         let currentText       = '';
         let currentToolCalls  = []; // [{id, name, input}]
         let currentToolResults = []; // [{tool_call_id, tool_name, result}]
@@ -462,9 +463,10 @@ export function useChat() {
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
+                terminalErrorMessage = err.message?.trim() || 'Connection error. Please try again.';
                 setMessages(prev => prev.map(m =>
                     m.id === assistId
-                        ? { ...m, content: 'Connection error. Please try again.', isError: true }
+                        ? { ...m, content: terminalErrorMessage, isError: true }
                         : m
                 ));
             }
@@ -484,7 +486,8 @@ export function useChat() {
             const finalAssistant = (currentText.trim() || currentToolCalls.length > 0)
                 ? [{ role: 'assistant', content: currentText, tool_calls: currentToolCalls }]
                 : [];
-            const guardedAssistantContent = guardAssistantTurnContent(displayText, currentToolResults);
+            const finalDisplayText = displayText || terminalErrorMessage;
+            const guardedAssistantContent = guardAssistantTurnContent(finalDisplayText, currentToolResults);
             const nextHistory = [
                 ...historyToSend,
                 { role: 'user', content: text },
@@ -499,6 +502,7 @@ export function useChat() {
                     role: 'assistant',
                     content: `${guardedAssistantContent}`,
                     toolCalls: displayToolCalls,
+                    ...(terminalErrorMessage ? { isError: true } : {}),
                     ...(finalMessageConfirmation ? { confirmation: finalMessageConfirmation } : {}),
                     id: assistId,
                 },
