@@ -1,0 +1,35 @@
+Copyright (c) 2026 GoRight AI — William GoRight
+
+INTERNAL USE ONLY
+
+This software and all associated source code, documentation, and assets
+("Software") are the proprietary and confidential property of GoRight AI.
+
+Permission is granted solely to authorised personnel of GoRight AI to use,
+copy, and modify the Software for internal demonstration and evaluation
+purposes only.
+
+The following are expressly prohibited without prior written permission
+from GoRight AI:
+
+  - Distribution, sublicensing, or disclosure of the Software to any
+    third party
+  - Use of the Software in any commercial product or service
+  - Publication of the Software or any derivative works
+  - Removal or alteration of this copyright notice
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED. IN NO EVENT SHALL GORIGHT AI BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE.
+
+---
+
+Third-party components included in this Software are subject to their own
+licences:
+
+  - WordPress core APIs — GPL-2.0-or-later
+  - React — MIT
+  - Vite — MIT
+  - Mermaid.js — MIT
+
+For questions contact: william@goright.ai

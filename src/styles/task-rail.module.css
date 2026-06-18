@@ -1,0 +1,136 @@
+.rail {
+    margin: 10px 12px 0;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #dcdcde;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.warning {
+    background: linear-gradient(180deg, #fff8dd 0%, #fff2bf 100%);
+    border-color: #dba617;
+}
+
+.neutral {
+    background: linear-gradient(180deg, #f7fbff 0%, #eef5fb 100%);
+    border-color: #c3d4e6;
+}
+
+.info {
+    background: linear-gradient(180deg, #eef7ff 0%, #e2f0ff 100%);
+    border-color: #8ec5ff;
+}
+
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #5f6368;
+}
+
+.title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.badge {
+    border-radius: 999px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: lowercase;
+}
+
+.summary {
+    font-size: 13px;
+    color: #1d2327;
+    line-height: 1.5;
+}
+
+.subtext {
+    font-size: 12px;
+    color: #5f6368;
+    line-height: 1.45;
+}
+
+.stateGrid {
+    display: grid;
+    gap: 6px;
+}
+
+.stateRow {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.stateLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.stateValue {
+    font-size: 12px;
+    color: #1f2937;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.primaryBtn,
+.secondaryBtn {
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.primaryBtn {
+    background: #2271b1;
+    color: #fff;
+}
+
+.primaryBtn:hover:not(:disabled) {
+    background: #135e96;
+}
+
+.secondaryBtn {
+    background: #fff;
+    color: #6e5200;
+    border-color: #dba617;
+}
+
+.secondaryBtn:hover:not(:disabled) {
+    background: #fff8dd;
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}

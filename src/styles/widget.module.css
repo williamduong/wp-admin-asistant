@@ -1,0 +1,161 @@
+/* All scoped inside #waa-root to avoid wp-admin conflicts */
+
+.toggleBtn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    z-index: 99999;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(34, 113, 177, 0.45);
+    transition: transform 0.15s ease, background 0.15s ease;
+    font-family: inherit;
+}
+
+.toggleBtn:hover {
+    transform: scale(1.08);
+    background: #135e96;
+}
+
+.panel {
+    position: fixed;
+    bottom: 88px;
+    right: 24px;
+    width: min(400px, calc(100vw - 48px));
+    height: min(580px, calc(100vh - 96px));
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    z-index: 99998;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .panel {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        width: calc(100vw - 32px);
+        height: calc(100vh - 32px);
+        border-radius: 14px;
+    }
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #2271b1;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.headerTitle {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.iconBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    transition: background 0.1s;
+}
+
+.iconBtn:hover,
+.iconBtn[aria-pressed="true"] {
+    background: rgba(255,255,255,0.2);
+}
+
+.clearBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.clearBtn:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.quickPrompts {
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.quickLabel {
+    color: #666;
+    font-size: 12px;
+    margin: 0 0 4px;
+}
+
+.chip {
+    background: #f0f6fc;
+    border: 1px solid #c3d4e6;
+    border-radius: 16px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #2271b1;
+    font-family: inherit;
+    transition: background 0.1s;
+    text-align: left;
+}
+
+.chip:hover {
+    background: #dce9f5;
+}
+
+.copyright {
+    text-align: center;
+    font-size: 11px;
+    color: #999;
+    padding: 4px 0 6px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 2px;
+}
+
+.copyright a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.copyright a:hover {
+    text-decoration: underline;
+}

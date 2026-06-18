@@ -1,0 +1,63 @@
+.wrap {
+    border-top: 1px solid #e2e4e7;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    flex-shrink: 0;
+    background: transparent;
+}
+
+.textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid #c3c4c7;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.textarea:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.textarea:disabled {
+    background: #f6f7f7;
+    color: #999;
+}
+
+.sendBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+
+.sendBtn:hover:not(:disabled) {
+    background: #135e96;
+}
+
+.sendBtn:disabled {
+    background: #c3c4c7;
+    cursor: not-allowed;
+}

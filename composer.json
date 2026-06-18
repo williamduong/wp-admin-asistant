@@ -1,0 +1,12 @@
+{
+  "name": "goright-ai/wp-admin-ai-assistant",
+  "description": "Development dependencies for WP Admin AI Assistant PHP integration tests.",
+  "type": "wordpress-plugin",
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^4.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "responses": [
+    {
+      "when": {
+        "last_user": "Reply with the single word OK."
+      },
+      "response": {
+        "stop_reason": "end_turn",
+        "text": "OK",
+        "tool_calls": [],
+        "usage": {
+          "input_tokens": 7,
+          "output_tokens": 1
+        }
+      }
+    },
+    {
+      "when": {
+        "last_user_contains": "List installed plugins"
+      },
+      "response": {
+        "stop_reason": "tool_use",
+        "text": "Checking installed plugins first.",
+        "tool_calls": [
+          {
+            "id": "fake_tc_list_plugins",
+            "name": "list_plugins",
+            "input": {}
+          }
+        ],
+        "usage": {
+          "input_tokens": 18,
+          "output_tokens": 6
+        }
+      }
+    },
+    {
+      "when": {
+        "last_tool_name": "list_plugins"
+      },
+      "response": {
+        "stop_reason": "end_turn",
+        "text": "I checked the installed plugins and preserved the current state.",
+        "tool_calls": [],
+        "usage": {
+          "input_tokens": 12,
+          "output_tokens": 10
+        }
+      }
+    }
+  ],
+  "default": {
+    "stop_reason": "end_turn",
+    "text": "Fake provider fallback response.",
+    "tool_calls": [],
+    "usage": {
+      "input_tokens": 5,
+      "output_tokens": 4
+    }
+  }
+}

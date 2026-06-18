@@ -1,0 +1,280 @@
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(12, 25, 39, 0.32);
+    backdrop-filter: blur(3px);
+}
+
+.modal {
+    width: min(760px, 100%);
+    max-height: calc(100% - 8px);
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid #cddaea;
+    background: linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
+    box-shadow: 0 22px 48px rgba(10, 34, 61, 0.24);
+    display: flex;
+    flex-direction: column;
+}
+
+.headerRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #dbe6f1;
+}
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #3d6f9d;
+}
+
+.title {
+    margin-top: 4px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #14314e;
+}
+
+.dismissBtn,
+.secondaryBtn,
+.primaryBtn,
+.choiceBtn,
+.tabBtn {
+    border-radius: 12px;
+    font-family: inherit;
+    font-weight: 600;
+}
+
+.dismissBtn,
+.secondaryBtn,
+.choiceBtn,
+.tabBtn {
+    border: 1px solid #bfd0e0;
+    background: #fff;
+    color: #264b70;
+}
+
+.dismissBtn,
+.secondaryBtn,
+.primaryBtn,
+.choiceBtn,
+.tabBtn {
+    cursor: pointer;
+}
+
+.dismissBtn,
+.secondaryBtn,
+.primaryBtn {
+    padding: 10px 14px;
+}
+
+.primaryBtn {
+    border-color: #2171b5;
+    background: #2171b5;
+    color: #fff;
+}
+
+.body {
+    display: grid;
+    grid-template-columns: 1.1fr 1.4fr 1.1fr;
+    gap: 16px;
+    padding: 18px 20px 12px;
+    overflow: auto;
+}
+
+.tabColumn,
+.panelColumn,
+.reviewColumn {
+    min-width: 0;
+}
+
+.tabLabel {
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6483a3;
+}
+
+.tabList {
+    display: grid;
+    gap: 8px;
+}
+
+.tabBtn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.tabBtnActive {
+    border-color: #2171b5;
+    background: #eff7ff;
+    color: #17324d;
+}
+
+.tabIndex {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #e3edf6;
+    color: #30577c;
+    flex-shrink: 0;
+}
+
+.tabText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.tabStatus {
+    font-size: 12px;
+    color: #6b839b;
+}
+
+.progress {
+    font-size: 12px;
+    color: #5c7d9d;
+}
+
+.question {
+    margin-top: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #14314e;
+}
+
+.summary {
+    margin: 10px 0 0;
+    color: #50657b;
+    line-height: 1.55;
+}
+
+.textInput {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px 14px;
+    border: 1px solid #bfd0e0;
+    border-radius: 14px;
+    font-size: 15px;
+}
+
+.booleanGroup {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.choiceBtn {
+    min-width: 88px;
+    padding: 10px 14px;
+}
+
+.choiceBtnActive {
+    border-color: #2171b5;
+    background: #2171b5;
+    color: #fff;
+}
+
+.footerActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.reviewList {
+    display: grid;
+    gap: 8px;
+}
+
+.reviewRow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #dce7f2;
+}
+
+.reviewLabel {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #67839d;
+}
+
+.reviewValue {
+    color: #17324d;
+    line-height: 1.45;
+}
+
+.modalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px 18px;
+    border-top: 1px solid #dbe6f1;
+}
+
+.footerHint {
+    color: #607890;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.footerActionGroup {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+    .overlay {
+        padding: 8px;
+    }
+
+    .modal {
+        max-height: 100%;
+    }
+
+    .body {
+        grid-template-columns: 1fr;
+    }
+
+    .modalFooter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .footerActionGroup {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .footerActionGroup button {
+        flex: 1;
+    }
+}

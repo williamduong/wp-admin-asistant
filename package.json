@@ -1,0 +1,32 @@
+{
+  "name": "wp-admin-agent",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev":      "vite build --watch",
+    "build":    "vite build",
+    "env:start":"wp-env start",
+    "env:stop": "wp-env stop",
+    "test:php:setup": "wp-env run tests-cli bash -lc 'cd /var/www/html/wp-content/plugins/wp-admin-assistant && composer install'",
+    "test:php": "wp-env run tests-cli bash -lc 'cd /var/www/html/wp-content/plugins/wp-admin-assistant && vendor/bin/phpunit -c phpunit.xml.dist'",
+    "test:php:integration": "wp-env run tests-cli bash -lc 'cd /var/www/html/wp-content/plugins/wp-admin-assistant && vendor/bin/phpunit -c phpunit.xml.dist --testsuite integration'",
+    "test:js:runtime": "vitest run tests/js/lib/sse.test.js tests/js/hooks/useChat.test.js --coverage --coverage.include=src/lib/sse.js --coverage.include=src/hooks/useChat.js",
+    "test:js":  "vitest run tests/js --coverage",
+    "test:e2e": "playwright test",
+    "lint":     "eslint src --ext .js,.jsx"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^15.0.7",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "eslint": "^8.57.0",
+    "jsdom": "^24.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.2.11",
+    "vitest": "^1.6.0"
+  }
+}

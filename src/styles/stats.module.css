@@ -1,0 +1,37 @@
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 14px 6px;
+    font-size: 11px;
+    color: #757575;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.item {
+    white-space: nowrap;
+    cursor: default;
+}
+
+.cost {
+    font-weight: 600;
+    color: #2271b1;
+}
+
+.sep {
+    color: #ccc;
+}
+
+.model {
+    margin-left: auto;
+    color: #aaa;
+    font-size: 10px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
