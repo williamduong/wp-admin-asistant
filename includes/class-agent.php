@@ -289,10 +289,20 @@ PROMPT;
     }
 
     public function build_runtime_messages(string $user_message, array $history = []): array {
-        return array_merge(
+        $messages = array_merge(
             $this->normalize_history($history),
             [['role' => 'user', 'content' => $user_message]]
         );
+
+        $preview_directive = $this->build_preview_draft_directive($user_message);
+        if ($preview_directive !== '') {
+            $messages[] = [
+                'role' => 'user',
+                'content' => $preview_directive,
+            ];
+        }
+
+        return $messages;
     }
 
     public function normalize_history(array $history): array {
@@ -379,6 +389,92 @@ PROMPT;
         }
 
         return $normalized;
+    }
+
+    private function build_preview_draft_directive(string $user_message): string {
+        $normalized = function_exists('mb_strtolower')
+            ? mb_strtolower($user_message)
+            : strtolower($user_message);
+
+        if (!$this->looks_like_long_form_request($normalized)) {
+            return '';
+        }
+
+        if (!$this->looks_like_topical_sports_preview($normalized)) {
+            return '';
+        }
+
+        if (!$this->is_missing_specific_match_details($normalized)) {
+            return '';
+        }
+
+        return <<<TEXT
+Product behavior override for this turn:
+- The user requested a long topical sports article but left the exact match details underspecified.
+- Do not ask follow-up questions.
+- Create a preview draft immediately.
+- Treat this as a clearly labeled preview article based on reasonable assumptions, not a final fact-checked match report.
+- Use create_rich_post with status=draft.
+- Prefer skip_featured_image=true for the first draft if the article is long, then attach an image afterward.
+- The draft must contain substantial body content, not just an outline.
+- Use a standard preview structure:
+  1. Mở bài
+  2. Bối cảnh trận đấu
+  3. Hành trình / phong độ hai đội
+  4. Cầu thủ nổi bật
+  5. Phân tích chiến thuật
+  6. Điểm nóng có thể quyết định trận đấu
+  7. Dự đoán kịch bản và tỷ số
+  8. Kết luận
+- Make the title and introduction clearly signal that this is a preview draft based on currently available assumptions.
+TEXT;
+    }
+
+    private function looks_like_long_form_request(string $message): bool {
+        $long_markers = [
+            '1200', '1500', '1800', '2000', '2200', '2500', '2800',
+            'bài blog dài', 'bài viết dài', 'chi tiết', 'nhiều mục', 'nhiều section',
+            'phân tích chuyên sâu', 'không viết ngắn gọn',
+        ];
+
+        foreach ($long_markers as $marker) {
+            if (str_contains($message, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function looks_like_topical_sports_preview(string $message): bool {
+        $sports_markers = [
+            'world cup', 'bóng đá', 'trận bóng', 'trận đấu', 'soi kèo',
+            'dự đoán tỷ số', 'đội hình', 'bán kết', 'chung kết', 'preview',
+        ];
+
+        foreach ($sports_markers as $marker) {
+            if (str_contains($message, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function is_missing_specific_match_details(string $message): bool {
+        $specific_markers = [
+            ' vs ', ' gặp ', 'đội a', 'đội b', 'brazil', 'argentina', 'pháp',
+            'đức', 'anh', 'tây ban nha', 'bồ đào nha', 'hà lan', 'croatia',
+            'morocco', 'uruguay', 'colombia', 'belgium',
+        ];
+
+        foreach ($specific_markers as $marker) {
+            if (str_contains($message, $marker)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function run_confirmed_action(array $confirmation): Generator {
