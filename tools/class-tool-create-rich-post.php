@@ -19,7 +19,7 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
                 ],
                 'content' => [
                     'type'        => 'string',
-                    'description' => 'Full post body in HTML. Use <h2> for sections, <h3> for sub-sections, <p>, <ul>/<ol>, <strong>, <em>. For diagrams use [mermaid]flowchart TD\n  A-->B[/mermaid]. Match the user requested scope and length as closely as practical; for especially long articles, create the fullest valid draft you can rather than refusing the request. Do not send only an outline, placeholder, or short stub when the user asked for a detailed article.',
+                    'description' => 'Full post body in HTML. Use <h2> for sections, <h3> for sub-sections, <p>, <ul>/<ol>, <strong>, <em>. For diagrams use [mermaid]flowchart TD\n  A-->B[/mermaid]. Inside the shortcode output raw Mermaid only: no triple backticks, no prose, no Markdown fence. Keep diagrams short and syntactically conservative. Match the user requested scope and length as closely as practical; for especially long articles, create the fullest valid draft you can rather than refusing the request. Do not send only an outline, placeholder, or short stub when the user asked for a detailed article.',
                 ],
                 'word_count_target' => [
                     'type'        => 'integer',
