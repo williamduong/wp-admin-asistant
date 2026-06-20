@@ -12,6 +12,16 @@ class MermaidShortcodeTest extends WP_UnitTestCase {
         $this->assertStringContainsString('class="waa-mermaid-source"', $html);
     }
 
+    public function test_mermaid_shortcode_normalizes_br_tags_and_unicode_dashes(): void {
+        $html = WAA_Mermaid::render([], "flowchart TD<br />A[User] –>|Request| B(App)<br />B –>|Reply| A");
+
+        $this->assertStringContainsString('flowchart TD', $html);
+        $this->assertStringContainsString("A[User] -&gt;|Request| B(App)", $html);
+        $this->assertStringContainsString("B -&gt;|Reply| A", $html);
+        $this->assertStringNotContainsString('&lt;br /&gt;', $html);
+        $this->assertStringNotContainsString('–&gt;', $html);
+    }
+
     public function test_mermaid_shortcode_returns_empty_string_for_empty_content(): void {
         $this->assertSame('', WAA_Mermaid::render([], ''));
     }

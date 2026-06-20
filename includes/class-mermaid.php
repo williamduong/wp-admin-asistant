@@ -41,12 +41,20 @@ class WAA_Mermaid {
             return '';
         }
 
+        $diagram = preg_replace('/<br\s*\/?>/i', "\n", $diagram);
+        $diagram = wp_strip_all_tags($diagram);
+
         // Models sometimes wrap shortcode content in Markdown fences, which Mermaid cannot parse.
         $diagram = preg_replace('/^```mermaid\s*/i', '', $diagram);
         $diagram = preg_replace('/^```\s*/', '', $diagram);
         $diagram = preg_replace('/\s*```$/', '', $diagram);
 
-        $diagram = str_replace(["\r\n", "\r"], "\n", trim($diagram));
+        $diagram = str_replace(
+            ["\xE2\x80\x93", "\xE2\x80\x94", "\xE2\x88\x92", "\r\n", "\r"],
+            ['-', '-', '-', "\n", "\n"],
+            trim($diagram)
+        );
+        $diagram = preg_replace("/[ \t]*\n[ \t]*/", "\n", $diagram);
 
         return $diagram;
     }
@@ -63,10 +71,14 @@ import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.mi
 
 function normalizeMermaidSource(source) {
     return String(source || '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
         .replace(/^```mermaid\s*/i, '')
         .replace(/^```\s*/i, '')
         .replace(/\s*```$/i, '')
+        .replace(/[\u2013\u2014\u2212]/g, '-')
         .replace(/\r\n?/g, '\n')
+        .replace(/[ \t]*\n[ \t]*/g, '\n')
         .trim();
 }
 
