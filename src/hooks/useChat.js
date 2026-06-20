@@ -13,7 +13,45 @@ import {
 } from '../lib/workflows';
 
 const STORAGE_KEY = 'waa_chat_v1';
-const EMPTY_USAGE = { input_tokens: 0, output_tokens: 0, cost_usd: 0, elapsed_ms: 0 };
+const EMPTY_TRACE = {
+    event_count: 0,
+    first_event_ms: 0,
+    first_text_ms: 0,
+    stream_ms: 0,
+    persistence_ms: 0,
+    create_conversation_ms: 0,
+    update_conversation_ms: 0,
+    llm_rounds: [],
+    tools: [],
+};
+const EMPTY_USAGE = { input_tokens: 0, output_tokens: 0, cost_usd: 0, elapsed_ms: 0, trace: EMPTY_TRACE };
+
+function buildEmptyTrace() {
+    return {
+        event_count: 0,
+        first_event_ms: 0,
+        first_text_ms: 0,
+        stream_ms: 0,
+        persistence_ms: 0,
+        create_conversation_ms: 0,
+        update_conversation_ms: 0,
+        llm_rounds: [],
+        tools: [],
+    };
+}
+
+function normalizeUsage(usage) {
+    return {
+        ...EMPTY_USAGE,
+        ...(usage ?? {}),
+        trace: {
+            ...buildEmptyTrace(),
+            ...(usage?.trace ?? {}),
+            llm_rounds: Array.isArray(usage?.trace?.llm_rounds) ? usage.trace.llm_rounds : [],
+            tools: Array.isArray(usage?.trace?.tools) ? usage.trace.tools : [],
+        },
+    };
+}
 
 function toAbsoluteUrl(rawUrl) {
     if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
@@ -139,7 +177,18 @@ function guardAssistantTurnContent(text, toolResults) {
 function loadFromStorage() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : { messages: [], history: [], usage: EMPTY_USAGE, conversationId: null, pendingConfirmation: null, activeWorkflow: null };
+        if (!raw) {
+            return { messages: [], history: [], usage: EMPTY_USAGE, conversationId: null, pendingConfirmation: null, activeWorkflow: null };
+        }
+        const parsed = JSON.parse(raw);
+        return {
+            messages: parsed.messages ?? [],
+            history: parsed.history ?? [],
+            usage: normalizeUsage(parsed.usage),
+            conversationId: parsed.conversationId ?? null,
+            pendingConfirmation: parsed.pendingConfirmation ?? null,
+            activeWorkflow: parsed.activeWorkflow ?? null,
+        };
     } catch {
         return { messages: [], history: [], usage: EMPTY_USAGE, conversationId: null, pendingConfirmation: null, activeWorkflow: null };
     }
@@ -251,6 +300,7 @@ export function useChat() {
         abortRef.current?.abort();
         abortRef.current = new AbortController();
 
+        const turnTrace = buildEmptyTrace();
         let collectedNavUrl = null;
         let resolvedConversationId = conversationId;
 
@@ -268,10 +318,14 @@ export function useChat() {
         const historyChunks   = []; // completed iterations (assistant + tool messages)
         let iterationHasTools = false;
         let firstUsageSeen    = false;
-        let streamedUsage     = { ...sessionUsage };
+        let streamedUsage     = {
+            ...normalizeUsage(sessionUsage),
+            trace: turnTrace,
+        };
 
         if (!resolvedConversationId) {
             try {
+                const createStartedAt = Date.now();
                 const created = await createConversation(
                     text.slice(0, 60) + (text.length > 60 ? '…' : ''),
                     [],
@@ -279,6 +333,7 @@ export function useChat() {
                     sessionUsage,
                     { active_workflow: workflow }
                 );
+                turnTrace.create_conversation_ms = Date.now() - createStartedAt;
                 resolvedConversationId = created.id ?? null;
                 if (resolvedConversationId) {
                     setConversationId(resolvedConversationId);
@@ -299,8 +354,16 @@ export function useChat() {
             );
 
             for await (const event of parseSSE(response.body)) {
+                turnTrace.event_count += 1;
+                if (!turnTrace.first_event_ms) {
+                    turnTrace.first_event_ms = Date.now() - startTime;
+                }
+
                 switch (event.type) {
                     case 'text_delta':
+                        if (!turnTrace.first_text_ms) {
+                            turnTrace.first_text_ms = Date.now() - startTime;
+                        }
                         displayText += event.content;
                         currentText += event.content;
                         setMessages(prev => prev.map(m =>
@@ -421,6 +484,53 @@ export function useChat() {
                         }
                         break;
 
+                    case 'trace':
+                        if (event.phase === 'llm') {
+                            turnTrace.llm_rounds = [
+                                ...turnTrace.llm_rounds,
+                                {
+                                    iteration: event.iteration ?? turnTrace.llm_rounds.length + 1,
+                                    duration_ms: event.duration_ms ?? 0,
+                                    tool_call_count: event.tool_call_count ?? 0,
+                                    text_chars: event.text_chars ?? 0,
+                                    elapsed_ms: event.elapsed_ms ?? 0,
+                                },
+                            ];
+                        }
+
+                        if (event.phase === 'tool') {
+                            turnTrace.tools = [
+                                ...turnTrace.tools.filter(tool => tool.tool_use_id !== event.tool_use_id),
+                                {
+                                    tool_use_id: event.tool_use_id,
+                                    name: event.tool_name,
+                                    duration_ms: event.duration_ms ?? 0,
+                                    status: event.status ?? 'success',
+                                    iteration: event.iteration ?? null,
+                                    elapsed_ms: event.elapsed_ms ?? 0,
+                                },
+                            ];
+
+                            displayToolCalls = displayToolCalls.map(tc =>
+                                tc.tool_use_id === event.tool_use_id
+                                    ? { ...tc, duration_ms: event.duration_ms ?? null }
+                                    : tc
+                            );
+                            setMessages(prev => prev.map(m =>
+                                m.id === assistId
+                                    ? {
+                                        ...m,
+                                        toolCalls: m.toolCalls.map(tc =>
+                                            tc.tool_use_id === event.tool_use_id
+                                                ? { ...tc, duration_ms: event.duration_ms ?? null }
+                                                : tc
+                                        ),
+                                    }
+                                    : m
+                            ));
+                        }
+                        break;
+
                     case 'usage':
                         // Each 'usage' marks the start of a new LLM iteration.
                         // Flush the previous iteration's tool calls into history chunks.
@@ -443,12 +553,18 @@ export function useChat() {
                             input_tokens: event.input_tokens,
                             output_tokens: event.output_tokens,
                             cost_usd: event.cost_usd,
+                            trace: {
+                                ...turnTrace,
+                            },
                         };
                         setSessionUsage(prev => ({
                             ...prev,
                             input_tokens:  event.input_tokens,
                             output_tokens: event.output_tokens,
                             cost_usd:      event.cost_usd,
+                            trace: {
+                                ...turnTrace,
+                            },
                         }));
                         break;
 
@@ -474,8 +590,21 @@ export function useChat() {
             setIsLoading(false);
             setActiveToolName(null);
             if (collectedNavUrl) setPendingNavUrl(collectedNavUrl);
-            const nextUsage = { ...streamedUsage, elapsed_ms: Date.now() - startTime };
-            setSessionUsage(prev => ({ ...prev, elapsed_ms: nextUsage.elapsed_ms }));
+            turnTrace.stream_ms = Date.now() - startTime;
+            const nextUsage = {
+                ...streamedUsage,
+                elapsed_ms: turnTrace.stream_ms,
+                trace: {
+                    ...turnTrace,
+                },
+            };
+            setSessionUsage(prev => ({
+                ...prev,
+                elapsed_ms: nextUsage.elapsed_ms,
+                trace: {
+                    ...turnTrace,
+                },
+            }));
 
             // Append this full turn (user + all iterations + final assistant) to API history
             const toolResultMessages = currentToolResults.map(tr => ({
@@ -513,12 +642,21 @@ export function useChat() {
 
             if (resolvedConversationId) {
                 try {
+                    const persistenceStartedAt = Date.now();
                     await updateConversation(resolvedConversationId, {
                         messages: nextMessages,
                         history: nextHistory,
                         usage: nextUsage,
                         meta: { active_workflow: workflow?.status === 'applying' ? null : workflow },
                     });
+                    turnTrace.persistence_ms = Date.now() - persistenceStartedAt;
+                    turnTrace.update_conversation_ms = turnTrace.persistence_ms;
+                    setSessionUsage(prev => ({
+                        ...prev,
+                        trace: {
+                            ...turnTrace,
+                        },
+                    }));
                 } catch {
                     // Leave local browser session intact even if persistence fails.
                 }
@@ -541,7 +679,7 @@ export function useChat() {
     const loadMessages = useCallback((savedMessages, savedUsage, savedHistory = [], savedConversationId = null, savedMeta = null) => {
         setMessages(savedMessages ?? []);
         setApiHistory(savedHistory ?? []);
-        setSessionUsage(savedUsage ?? EMPTY_USAGE);
+        setSessionUsage(normalizeUsage(savedUsage));
         setConversationId(savedConversationId ?? null);
         setPendingNavUrl(null);
         setPendingConfirmation(null);

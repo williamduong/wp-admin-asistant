@@ -35,3 +35,21 @@
     text-overflow: ellipsis;
     max-width: 140px;
 }
+
+.traceRow {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: 2px;
+}
+
+.traceItem {
+    font-size: 10px;
+    color: #5f6c7b;
+    background: #eef3f8;
+    border: 1px solid #d7e1ea;
+    border-radius: 999px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}

@@ -132,17 +132,29 @@ PROMPT;
         $start_ms      = (int) (microtime(true) * 1000);
 
         while ($iteration++ < WAA_MAX_TOOL_ITERATIONS) {
+            $llm_started_ms = (int) (microtime(true) * 1000);
             $response = $this->provider->complete(
                 $this->system_prompt(),
                 $messages,
                 $this->registry->get_schemas()
             );
+            $llm_duration_ms = (int) (microtime(true) * 1000) - $llm_started_ms;
 
             // Accumulate token usage
             $call_in   = $response['usage']['input_tokens']  ?? 0;
             $call_out  = $response['usage']['output_tokens'] ?? 0;
             $total_in  += $call_in;
             $total_out += $call_out;
+
+            yield [
+                'type'            => 'trace',
+                'phase'           => 'llm',
+                'iteration'       => $iteration,
+                'duration_ms'     => $llm_duration_ms,
+                'tool_call_count' => count($response['tool_calls'] ?? []),
+                'text_chars'      => strlen((string) ($response['text'] ?? '')),
+                'elapsed_ms'      => (int) (microtime(true) * 1000) - $start_ms,
+            ];
 
             // Yield usage snapshot after each LLM call
             yield [
@@ -189,7 +201,9 @@ PROMPT;
 
                 yield ['type' => 'tool_start', 'tool_name' => $tc['name'], 'tool_use_id' => $tc['id'], 'tool_input' => $tc['input']];
 
+                $tool_started_ms = (int) (microtime(true) * 1000);
                 $result = $this->registry->execute($tc['name'], $tc['input']);
+                $tool_duration_ms = (int) (microtime(true) * 1000) - $tool_started_ms;
 
                 // Extract internal navigation keys before exposing result to AI/log
                 $nav_url = esc_url_raw($result['_navigate_url'] ?? '');
@@ -202,6 +216,16 @@ PROMPT;
                     'output_tokens' => $call_out,
                 ]);
 
+                yield [
+                    'type'         => 'trace',
+                    'phase'        => 'tool',
+                    'iteration'    => $iteration,
+                    'tool_name'    => $tc['name'],
+                    'tool_use_id'  => $tc['id'],
+                    'duration_ms'  => $tool_duration_ms,
+                    'status'       => isset($result['error']) || (($result['success'] ?? null) === false) ? 'error' : 'success',
+                    'elapsed_ms'   => (int) (microtime(true) * 1000) - $start_ms,
+                ];
                 yield ['type' => 'tool_end', 'tool_name' => $tc['name'], 'result' => $result, 'tool_use_id' => $tc['id']];
 
                 // Navigate: prefer dynamic URL from tool result, fall back to static map

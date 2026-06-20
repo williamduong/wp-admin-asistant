@@ -1,6 +1,7 @@
 import styles from '../styles/stats.module.css';
 
 const { provider, model, pricing } = window.waaData ?? {};
+const debugMode = window.waaData?.debugMode ?? 'off';
 
 function getPricing() {
     return pricing?.[provider]?.[model] ?? null;
@@ -25,12 +26,31 @@ function formatElapsed(ms) {
     return `${(ms / 1000).toFixed(1)}s`;
 }
 
+function buildTraceItems(trace) {
+    if (!trace) {
+        return [];
+    }
+
+    const llmTotal = (trace.llm_rounds ?? []).reduce((sum, round) => sum + (round.duration_ms ?? 0), 0);
+    const toolTotal = (trace.tools ?? []).reduce((sum, tool) => sum + (tool.duration_ms ?? 0), 0);
+
+    return [
+        trace.first_event_ms ? `first byte ${formatElapsed(trace.first_event_ms)}` : null,
+        trace.first_text_ms ? `first text ${formatElapsed(trace.first_text_ms)}` : null,
+        llmTotal ? `llm ${formatElapsed(llmTotal)}` : null,
+        toolTotal ? `tools ${formatElapsed(toolTotal)}` : null,
+        trace.create_conversation_ms ? `create ${formatElapsed(trace.create_conversation_ms)}` : null,
+        trace.update_conversation_ms ? `save ${formatElapsed(trace.update_conversation_ms)}` : null,
+    ].filter(Boolean);
+}
+
 export default function SessionStats({ usage }) {
-    const { input_tokens, output_tokens, cost_usd, elapsed_ms } = usage;
+    const { input_tokens, output_tokens, cost_usd, elapsed_ms, trace } = usage;
     const total   = input_tokens + output_tokens;
     const info    = getPricing();
     const isFree  = info ? (info.in === 0 && info.out === 0) : false;
     const elapsed = formatElapsed(elapsed_ms);
+    const traceItems = buildTraceItems(trace);
 
     if (total === 0) return null;
 
@@ -59,6 +79,13 @@ export default function SessionStats({ usage }) {
                 <span className={styles.model} title="Active model">
                     {model}
                 </span>
+            )}
+            {debugMode === 'full' && traceItems.length > 0 && (
+                <div className={styles.traceRow} title="Request timing breakdown">
+                    {traceItems.map((item) => (
+                        <span key={item} className={styles.traceItem}>{item}</span>
+                    ))}
+                </div>
             )}
         </div>
     );

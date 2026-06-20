@@ -3,12 +3,19 @@ import styles from '../styles/messages.module.css';
 
 const debugMode = window.waaData?.debugMode ?? 'off';
 
+function formatElapsed(ms) {
+    if (!ms || ms <= 0) return null;
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function ToolCallRow({ tc }) {
     const [expanded, setExpanded] = useState(false);
     const hasError = tc.result && (tc.result.success === false || tc.result.error);
     const isPending = tc.status === 'needs_confirmation';
     const isQueued = tc.status === 'queued';
     const asyncHint = tc.asyncMeta?.message ?? '';
+    const duration = formatElapsed(tc.duration_ms);
 
     return (
         <div className={styles.toolRow}>
@@ -19,6 +26,7 @@ function ToolCallRow({ tc }) {
                 title={debugMode !== 'off' ? 'Click to expand' : undefined}
             >
                 {isPending ? '!' : isQueued ? '…' : tc.status === 'running' ? '⚙' : (hasError ? '✗' : '✓')} {tc.name}
+                {debugMode === 'full' && duration && <span className={styles.toolDuration}>{duration}</span>}
                 {debugMode !== 'off' && tc.status === 'done' && <span className={styles.expandToggle}>{expanded ? ' ▲' : ' ▼'}</span>}
             </span>
 
