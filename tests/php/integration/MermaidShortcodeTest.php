@@ -16,10 +16,18 @@ class MermaidShortcodeTest extends WP_UnitTestCase {
         $html = WAA_Mermaid::render([], "flowchart TD<br />A[User] –>|Request| B(App)<br />B –>|Reply| A");
 
         $this->assertStringContainsString('flowchart TD', $html);
-        $this->assertStringContainsString("A[User] -&gt;|Request| B(App)", $html);
+        $this->assertStringContainsString("A[User] -&gt;|Request| B[App]", $html);
         $this->assertStringContainsString("B -&gt;|Reply| A", $html);
         $this->assertStringNotContainsString('&lt;br /&gt;', $html);
         $this->assertStringNotContainsString('–&gt;', $html);
+        $this->assertStringNotContainsString('B(App)', $html);
+    }
+
+    public function test_mermaid_shortcode_converts_round_nodes_to_square_nodes(): void {
+        $html = WAA_Mermaid::render([], "flowchart TD\nA[Người dùng] -->|Yêu cầu bằng ngôn ngữ tự nhiên| B(Trợ lý AI WordPress)\nB -->|Phân tích & Lập kế hoạch| C{API WordPress}\nC -->|Thực thi lệnh| D[WordPress Core/Plugins/Themes]\nB -->|Cập nhật & Phản hồi| A");
+
+        $this->assertStringContainsString('B[Trợ lý AI WordPress]', $html);
+        $this->assertStringNotContainsString('B(Trợ lý AI WordPress)', $html);
     }
 
     public function test_mermaid_shortcode_returns_empty_string_for_empty_content(): void {

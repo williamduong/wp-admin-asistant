@@ -54,6 +54,7 @@ class WAA_Mermaid {
             ['-', '-', '-', "\n", "\n"],
             trim($diagram)
         );
+        $diagram = preg_replace('/\b([A-Za-z][A-Za-z0-9_]*)\(([^()\n]+)\)/', '$1[$2]', $diagram);
         $diagram = preg_replace("/[ \t]*\n[ \t]*/", "\n", $diagram);
 
         return $diagram;
@@ -78,6 +79,7 @@ function normalizeMermaidSource(source) {
         .replace(/\s*```$/i, '')
         .replace(/[\u2013\u2014\u2212]/g, '-')
         .replace(/\r\n?/g, '\n')
+        .replace(/\b([A-Za-z][A-Za-z0-9_]*)\(([^()\n]+)\)/g, '$1[$2]')
         .replace(/[ \t]*\n[ \t]*/g, '\n')
         .trim();
 }
