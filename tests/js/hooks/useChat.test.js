@@ -221,6 +221,33 @@ describe('useChat', () => {
         });
     });
 
+    it('does not keep an empty assistant bubble when a turn finishes without visible output', async () => {
+        chatStreamMock.mockResolvedValue({ body: { mock: true } });
+        createConversationMock.mockResolvedValue({ id: 271 });
+        updateConversationMock.mockResolvedValue({ success: true });
+        parseSSEMock.mockImplementation(async function* () {
+            yield { type: 'usage', input_tokens: 11, output_tokens: 0, cost_usd: 0.01 };
+            yield { type: 'done' };
+        });
+
+        const { result } = await importHook();
+
+        await act(async () => {
+            await result.current.sendMessage('Silent turn');
+        });
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.messages).toEqual([
+            { role: 'user', content: 'Silent turn', id: expect.any(String) },
+        ]);
+        expect(updateConversationMock.mock.calls[0][1].messages).toEqual([
+            { role: 'user', content: 'Silent turn', id: expect.any(String) },
+        ]);
+    });
+
     it('marks async tool results as queued and preserves follow-up metadata', async () => {
         chatStreamMock.mockResolvedValue({ body: { mock: true } });
         createConversationMock.mockResolvedValue({ id: 91 });

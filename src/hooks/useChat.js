@@ -144,6 +144,22 @@ function isQueuedAsyncResult(result) {
     return Boolean(result?.async) && (result?.job_status ?? '') === 'queued';
 }
 
+function shouldKeepAssistantMessage({ content = '', toolCalls = [], confirmation = null, isError = false }) {
+    if (isError) {
+        return true;
+    }
+
+    if (typeof content === 'string' && content.trim() !== '') {
+        return true;
+    }
+
+    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+        return true;
+    }
+
+    return Boolean(confirmation);
+}
+
 function guardAssistantTurnContent(text, toolResults) {
     const baseText = text ?? '';
     const normalized = baseText.trim();
@@ -625,17 +641,19 @@ export function useChat() {
                 ...finalAssistant,
                 ...toolResultMessages,
             ];
+            const finalAssistantMessage = {
+                role: 'assistant',
+                content: `${guardedAssistantContent}`,
+                toolCalls: displayToolCalls,
+                ...(terminalErrorMessage ? { isError: true } : {}),
+                ...(finalMessageConfirmation ? { confirmation: finalMessageConfirmation } : {}),
+                id: assistId,
+            };
+
             const nextMessages = [
                 ...messages,
                 { role: 'user', content: text, id: userId },
-                {
-                    role: 'assistant',
-                    content: `${guardedAssistantContent}`,
-                    toolCalls: displayToolCalls,
-                    ...(terminalErrorMessage ? { isError: true } : {}),
-                    ...(finalMessageConfirmation ? { confirmation: finalMessageConfirmation } : {}),
-                    id: assistId,
-                },
+                ...(shouldKeepAssistantMessage(finalAssistantMessage) ? [finalAssistantMessage] : []),
             ];
 
             setMessages(nextMessages);
