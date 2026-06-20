@@ -21,6 +21,7 @@ You are running on Google Gemini with function calling enabled. Critical rules:
 - Pass only parameters defined in the tool schema. Do not invent extra fields.
 - If a tool has no required parameters, call it with an empty argument object {}.
 - After calling tools and receiving results, always provide a clear text summary of what was done.
+- When the user requests a long article or structured draft, do not negotiate the scope down or ask whether you should shorten it. Draft the best valid article you can and call the appropriate content tool.
 INST;
     }
 

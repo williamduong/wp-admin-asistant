@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { chatStream, createConversation, updateConversation } from '../lib/api';
+import { makeClientId } from '../lib/ids';
 import { parseSSE }   from '../lib/sse';
 import {
     createWorkflowState,
@@ -282,8 +283,8 @@ export function useChat() {
             return;
         }
 
-        const userId    = crypto.randomUUID();
-        const assistId  = crypto.randomUUID();
+        const userId    = makeClientId();
+        const assistId  = makeClientId();
         const startTime = Date.now();
         const confirmation = options.confirmation ?? null;
         const workflow = options.workflow ?? activeWorkflow ?? null;
@@ -699,8 +700,8 @@ export function useChat() {
             return;
         }
 
-        const userId = crypto.randomUUID();
-        const assistId = crypto.randomUUID();
+        const userId = makeClientId();
+        const assistId = makeClientId();
         const cancelText = 'No, cancel that action.';
         const assistantText = 'Okay, I will not run that action.';
         const nextMessages = [

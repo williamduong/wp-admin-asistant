@@ -24,6 +24,63 @@ Use this repo to:
 - test runtime, UI, and integration behavior
 - package a distributable plugin build
 - prepare a release safely without breaking the demo site
+- manage GitHub issues as the default follow-up mechanism for unfinished, risky, or deferred work
+
+## Issue Management Policy
+
+For this repo, GitHub Issues are the default follow-up system.
+
+Codex should treat issues as part of the working process, not as optional admin overhead.
+
+### When Codex should create or update an issue
+
+Create a GitHub issue when any of these are true:
+
+- a bug is found but not fixed in the current task
+- a limitation is confirmed and needs follow-up
+- a risky refactor should be split into a later task
+- docs reveal stale behavior that needs code work later
+- testing exposes an intermittent or environment-specific failure
+- a feature request becomes concrete enough to schedule
+- release readiness has a known blocker or gap
+
+Update an existing issue instead of creating a new one when the work is clearly the same follow-up thread.
+
+### Default issue expectations
+
+A useful issue in this repo should usually contain:
+
+- clear title
+- current behavior
+- expected behavior or target outcome
+- impact
+- likely affected area
+- proposed next step
+- acceptance checks if known
+
+### Agent behavior
+
+When working in this repo, Codex should:
+
+- check whether a follow-up belongs in GitHub Issues
+- prefer creating an issue instead of leaving a loose TODO in chat
+- reference issue IDs in later code, docs, or release notes when relevant
+- close the loop by updating the issue after the work is done
+
+### Terminal flow
+
+GitHub CLI is installed for this repo's workflow.
+
+Available helper scripts:
+
+- `scripts/create-issue.sh`
+- `scripts/follow-up-issue.sh`
+
+If `gh` is not authenticated, run:
+
+```bash
+gh auth login --hostname github.com --git-protocol ssh --web
+```
 
 ## Runtime Topology
 

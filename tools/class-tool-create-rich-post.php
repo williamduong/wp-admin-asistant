@@ -6,7 +6,7 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
     public function get_name(): string { return 'create_rich_post'; }
 
     public function get_description(): string {
-        return 'Create a long, structured WordPress post with a featured image auto-fetched from Pexels based on the topic. Content should use HTML headings (h2, h3), paragraphs, lists, and optionally [mermaid]...[/mermaid] shortcode blocks for diagrams. For short posts without images use create_simple_post instead.';
+        return 'Create a long, structured WordPress post. By default it auto-fetches a featured image from Pexels based on the topic, but you can set skip_featured_image=true to create the draft first and attach an image in a later step. Content should use HTML headings (h2, h3), paragraphs, lists, and optionally [mermaid]...[/mermaid] shortcode blocks for diagrams. For short posts without images use create_simple_post instead.';
     }
 
     public function get_input_schema(): array {
@@ -19,11 +19,21 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
                 ],
                 'content' => [
                     'type'        => 'string',
-                    'description' => 'Full post body in HTML. Use <h2> for sections, <h3> for sub-sections, <p>, <ul>/<ol>, <strong>, <em>. For diagrams use [mermaid]flowchart TD\n  A-->B[/mermaid]. Aim for 500–1500 words.',
+                    'description' => 'Full post body in HTML. Use <h2> for sections, <h3> for sub-sections, <p>, <ul>/<ol>, <strong>, <em>. For diagrams use [mermaid]flowchart TD\n  A-->B[/mermaid]. Match the user requested scope and length as closely as practical; for especially long articles, create the fullest valid draft you can rather than refusing the request. Do not send only an outline, placeholder, or short stub when the user asked for a detailed article.',
+                ],
+                'word_count_target' => [
+                    'type'        => 'integer',
+                    'description' => 'Optional target word count for long-form drafting. Use this to preserve the user requested scope even when the article needs to be created as a draft first.',
+                    'minimum'     => 300,
+                    'maximum'     => 5000,
                 ],
                 'image_query' => [
                     'type'        => 'string',
                     'description' => 'Search term for the featured image on Pexels. Defaults to the post title if omitted.',
+                ],
+                'skip_featured_image' => [
+                    'type'        => 'boolean',
+                    'description' => 'Set true to skip the built-in Pexels fetch and create the long-form draft first. Useful for very long articles or when image attachment should happen in a later step.',
                 ],
                 'status' => [
                     'type'        => 'string',
@@ -48,6 +58,7 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
         $title  = sanitize_text_field($input['title']);
         $status = in_array($input['status'] ?? '', ['publish','draft','private'], true)
             ? $input['status'] : 'draft';
+        $skip_featured_image = !empty($input['skip_featured_image']);
 
         $postarr = [
             'post_title'   => $title,
@@ -69,14 +80,14 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
             wp_set_post_tags($post_id, array_map('sanitize_text_field', $input['tags']));
         }
 
-        // Auto-fetch featured image from Pexels
+        // Auto-fetch featured image from Pexels unless the caller explicitly defers it.
         $image_query    = sanitize_text_field($input['image_query'] ?? $title);
-        $attachment_id  = $this->fetch_pexels_image($image_query);
+        $attachment_id  = $skip_featured_image ? null : $this->fetch_pexels_image($image_query);
         $image_warning  = null;
 
         if ($attachment_id) {
             set_post_thumbnail($post_id, $attachment_id);
-        } else {
+        } elseif (!$skip_featured_image) {
             $image_warning = 'Featured image could not be fetched (Pexels key missing or no results). Add it manually.';
         }
 
@@ -86,10 +97,15 @@ class WAA_Tool_Create_Rich_Post extends WAA_Tool_Base {
             'post_url'      => get_permalink($post_id),
             'status'        => $status,
             'thumbnail_id'  => $attachment_id,
+            'image_deferred' => $skip_featured_image,
         ];
 
         if ($image_warning) {
             $result['image_warning'] = $image_warning;
+        }
+
+        if ($skip_featured_image) {
+            $result['message'] = 'Draft created without fetching a featured image. Attach one later with search_images and set_post_image.';
         }
 
         return $result;
