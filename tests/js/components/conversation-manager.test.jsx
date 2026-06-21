@@ -51,6 +51,8 @@ describe('ConversationManager', () => {
         });
         expect(screen.getByText('Switch to Astra')).toBeInTheDocument();
         expect(screen.getByText('Deactivate Hello Dolly')).toBeInTheDocument();
+        expect(screen.getByText(/Session #12/)).toBeInTheDocument();
+        expect(screen.getByText(/Session #13/)).toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText('Search sessions'), {
             target: { value: 'astra' },

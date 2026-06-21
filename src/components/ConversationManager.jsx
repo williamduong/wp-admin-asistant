@@ -194,7 +194,7 @@ export default function ConversationManager({ currentConversationId, onLoad, onC
                         ) : (
                             <>
                                 <div className={styles.itemTitle}>{c.title}</div>
-                                <div className={styles.itemMeta}>{formatDate(c.updated_at)}</div>
+                                <div className={styles.itemMeta}>{`Session #${c.id} · ${formatDate(c.updated_at)}`}</div>
                                 <div className={styles.itemActions}>
                                     <button
                                         className={styles.actionBtn}

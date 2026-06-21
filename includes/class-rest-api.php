@@ -6,6 +6,7 @@ class WAA_REST_API {
     private const NS = 'wp-admin-agent/v1';
     private const DEFAULT_CONVERSATION_TITLE = 'New conversation';
     private const PROVISIONAL_TITLE_LIMIT = 60;
+    private const DEBUG_LOG_LIMIT = 80;
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
@@ -100,11 +101,52 @@ class WAA_REST_API {
         $workflow = $this->resolve_active_workflow($body ?? [], (int) $conversation_id);
 
         if (!$settings->has_active_credential()) {
+            $this->append_conversation_debug_log((int) $conversation_id, [
+                'turn_id' => $this->make_debug_turn_id(),
+                'started_at' => current_time('mysql'),
+                'completed_at' => current_time('mysql'),
+                'status' => 'error',
+                'provider' => $settings->get_provider(),
+                'model' => $settings->get_model(),
+                'request' => [
+                    'message' => (string) $message,
+                    'history_count' => 0,
+                    'confirmation' => is_array($confirmation) ? $confirmation : null,
+                    'workflow' => is_array($workflow) ? $this->sanitize_debug_value($workflow) : null,
+                ],
+                'warnings' => [],
+                'errors' => ['AI provider not configured. Please go to Settings → Admin Agent.'],
+                'events' => [
+                    ['type' => 'error', 'message' => 'AI provider not configured. Please go to Settings → Admin Agent.'],
+                ],
+            ]);
             $this->sse_error('AI provider not configured. Please go to Settings → Admin Agent.');
             return;
         }
 
         $history = $this->resolve_history($body ?? [], (int) $conversation_id);
+        $debug_turn = [
+            'turn_id' => $this->make_debug_turn_id(),
+            'started_at' => current_time('mysql'),
+            'completed_at' => null,
+            'status' => 'running',
+            'provider' => $settings->get_provider(),
+            'model' => $settings->get_model(),
+            'request' => [
+                'message' => (string) $message,
+                'history_count' => count($history),
+                'conversation_id' => (int) $conversation_id,
+                'confirmation' => is_array($confirmation) ? $this->sanitize_debug_value($confirmation) : null,
+                'workflow' => is_array($workflow) ? $this->sanitize_debug_value($workflow) : null,
+            ],
+            'assistant_text' => '',
+            'tool_calls' => [],
+            'tool_results' => [],
+            'usage' => [],
+            'warnings' => [],
+            'errors' => [],
+            'events' => [],
+        ];
 
         header('Content-Type: text/event-stream; charset=utf-8');
         header('Cache-Control: no-store');
@@ -119,10 +161,23 @@ class WAA_REST_API {
 
         try {
             foreach ($agent->run($message, $history, $confirmation, $workflow) as $event) {
+                $this->record_debug_event($debug_turn, $event);
                 $this->sse_emit($event);
             }
         } catch (Throwable $e) {
+            $debug_turn['status'] = 'error';
+            $debug_turn['errors'][] = $e->getMessage();
+            $debug_turn['events'][] = [
+                'type' => 'exception',
+                'message' => $e->getMessage(),
+            ];
             $this->sse_error($e->getMessage());
+        } finally {
+            $debug_turn['completed_at'] = current_time('mysql');
+            if ($debug_turn['status'] === 'running') {
+                $debug_turn['status'] = !empty($debug_turn['errors']) ? 'error' : 'success';
+            }
+            $this->append_conversation_debug_log((int) $conversation_id, $debug_turn);
         }
 
         $this->sse_emit(['type' => 'done']);
@@ -420,6 +475,188 @@ class WAA_REST_API {
             'usage'    => [],
             'meta'     => ['archived' => false],
         ];
+    }
+
+    private function record_debug_event(array &$debug_turn, array $event): void {
+        $type = (string) ($event['type'] ?? '');
+
+        switch ($type) {
+            case 'text_delta':
+                $debug_turn['assistant_text'] .= (string) ($event['content'] ?? '');
+                $debug_turn['events'][] = [
+                    'type' => 'text_delta',
+                    'chars' => strlen((string) ($event['content'] ?? '')),
+                ];
+                break;
+
+            case 'tool_start':
+                $tool_call = [
+                    'tool_use_id' => (string) ($event['tool_use_id'] ?? ''),
+                    'tool_name' => (string) ($event['tool_name'] ?? ''),
+                    'input' => $this->sanitize_debug_value($event['tool_input'] ?? []),
+                ];
+                $debug_turn['tool_calls'][] = $tool_call;
+                $debug_turn['events'][] = array_merge(['type' => 'tool_start'], $tool_call);
+                break;
+
+            case 'tool_end':
+                $tool_result = [
+                    'tool_use_id' => (string) ($event['tool_use_id'] ?? ''),
+                    'tool_name' => (string) ($event['tool_name'] ?? ''),
+                    'result' => $this->sanitize_debug_value($event['result'] ?? []),
+                    'status' => !empty($event['result']['error']) || (($event['result']['success'] ?? true) === false) ? 'error' : 'success',
+                ];
+                $debug_turn['tool_results'][] = $tool_result;
+                $debug_turn['events'][] = array_merge(['type' => 'tool_end'], $tool_result);
+                if ($tool_result['status'] === 'error') {
+                    $debug_turn['warnings'][] = sprintf('Tool `%s` finished with an error result.', $tool_result['tool_name']);
+                }
+                break;
+
+            case 'usage':
+                $debug_turn['usage'] = [
+                    'input_tokens' => (int) ($event['input_tokens'] ?? 0),
+                    'output_tokens' => (int) ($event['output_tokens'] ?? 0),
+                    'cost_usd' => (float) ($event['cost_usd'] ?? 0),
+                    'elapsed_ms' => (int) ($event['elapsed_ms'] ?? 0),
+                ];
+                $debug_turn['events'][] = [
+                    'type' => 'usage',
+                    'input_tokens' => $debug_turn['usage']['input_tokens'],
+                    'output_tokens' => $debug_turn['usage']['output_tokens'],
+                    'cost_usd' => $debug_turn['usage']['cost_usd'],
+                    'elapsed_ms' => $debug_turn['usage']['elapsed_ms'],
+                ];
+                break;
+
+            case 'trace':
+                $debug_turn['events'][] = [
+                    'type' => 'trace',
+                    'phase' => (string) ($event['phase'] ?? ''),
+                    'iteration' => isset($event['iteration']) ? (int) $event['iteration'] : null,
+                    'duration_ms' => isset($event['duration_ms']) ? (int) $event['duration_ms'] : null,
+                    'status' => isset($event['status']) ? (string) $event['status'] : null,
+                    'tool_name' => isset($event['tool_name']) ? (string) $event['tool_name'] : null,
+                    'tool_use_id' => isset($event['tool_use_id']) ? (string) $event['tool_use_id'] : null,
+                ];
+                break;
+
+            case 'confirmation_required':
+                $debug_turn['warnings'][] = 'Assistant paused for confirmation before a sensitive action.';
+                $debug_turn['events'][] = [
+                    'type' => 'confirmation_required',
+                    'tool_name' => (string) ($event['tool_name'] ?? ''),
+                    'tool_use_id' => (string) ($event['tool_use_id'] ?? ''),
+                    'message' => (string) ($event['message'] ?? ''),
+                    'confirmation' => $this->sanitize_debug_value($event['confirmation'] ?? []),
+                ];
+                break;
+
+            case 'navigate':
+                $debug_turn['events'][] = [
+                    'type' => 'navigate',
+                    'url' => (string) ($event['url'] ?? ''),
+                ];
+                break;
+
+            case 'error':
+                $message = (string) ($event['message'] ?? 'Unknown error');
+                $debug_turn['status'] = 'error';
+                $debug_turn['errors'][] = $message;
+                $debug_turn['events'][] = [
+                    'type' => 'error',
+                    'message' => $message,
+                ];
+                break;
+        }
+    }
+
+    private function append_conversation_debug_log(int $conversation_id, array $entry): void {
+        if ($conversation_id <= 0) {
+            return;
+        }
+
+        global $wpdb;
+        $existing_payload = $wpdb->get_var($wpdb->prepare(
+            "SELECT messages FROM " . WAA_TABLE_CONVERSATIONS . " WHERE id = %d AND user_id = %d",
+            $conversation_id,
+            get_current_user_id()
+        ));
+
+        if (!$existing_payload) {
+            return;
+        }
+
+        $decoded = $this->decode_conversation_payload($existing_payload);
+        $meta = is_array($decoded['meta'] ?? null) ? $decoded['meta'] : [];
+        $debug_log = is_array($meta['debug_log'] ?? null) ? $meta['debug_log'] : [];
+        $debug_log[] = $this->sanitize_debug_value($entry);
+        if (count($debug_log) > self::DEBUG_LOG_LIMIT) {
+            $debug_log = array_slice($debug_log, -self::DEBUG_LOG_LIMIT);
+        }
+        $meta['debug_log'] = $debug_log;
+        $meta['last_debug_turn_id'] = (string) ($entry['turn_id'] ?? '');
+        $meta['last_debug_status'] = (string) ($entry['status'] ?? '');
+        $meta['last_debug_at'] = current_time('mysql');
+
+        $payload = [
+            'messages' => $decoded['messages'],
+            'history' => $decoded['history'],
+            'usage' => $decoded['usage'],
+            'meta' => $meta,
+        ];
+
+        $wpdb->update(
+            WAA_TABLE_CONVERSATIONS,
+            ['messages' => wp_json_encode($payload)],
+            [
+                'id' => $conversation_id,
+                'user_id' => get_current_user_id(),
+            ]
+        );
+    }
+
+    private function make_debug_turn_id(): string {
+        return 'turn_' . wp_generate_uuid4();
+    }
+
+    private function sanitize_debug_value(mixed $value): mixed {
+        if (is_scalar($value) || $value === null) {
+            if (is_string($value)) {
+                return $this->truncate_debug_string($value);
+            }
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $key => $item) {
+                $sanitized[$key] = $this->sanitize_debug_value($item);
+            }
+            return $sanitized;
+        }
+
+        if (is_object($value)) {
+            return $this->sanitize_debug_value((array) $value);
+        }
+
+        return $this->truncate_debug_string((string) $value);
+    }
+
+    private function truncate_debug_string(string $value, int $limit = 4000): string {
+        $value = wp_check_invalid_utf8($value);
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            if (mb_strlen($value) > $limit) {
+                return mb_substr($value, 0, $limit) . '…';
+            }
+            return $value;
+        }
+
+        if (strlen($value) > $limit) {
+            return substr($value, 0, $limit) . '…';
+        }
+
+        return $value;
     }
 
     public function derive_conversation_title(array $messages, array $history = []): string {

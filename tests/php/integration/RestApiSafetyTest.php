@@ -244,6 +244,55 @@ class RestApiSafetyTest extends WP_UnitTestCase {
         $this->assertSame(['input_tokens' => 3], $decoded['usage']);
     }
 
+    public function test_update_conversation_preserves_existing_debug_log_meta(): void {
+        global $wpdb;
+
+        $user_id = self::factory()->user->create(['role' => 'administrator']);
+        wp_set_current_user($user_id);
+
+        $wpdb->insert(WAA_TABLE_CONVERSATIONS, [
+            'user_id' => $user_id,
+            'title' => 'Debuggable session',
+            'messages' => wp_json_encode([
+                'messages' => [['role' => 'user', 'content' => 'old display']],
+                'history' => [['role' => 'assistant', 'content' => 'old history']],
+                'usage' => ['input_tokens' => 3],
+                'meta' => [
+                    'archived' => false,
+                    'debug_log' => [
+                        [
+                            'turn_id' => 'turn_existing',
+                            'status' => 'error',
+                            'errors' => ['Provider timeout'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+        $conversation_id = (int) $wpdb->insert_id;
+
+        $request = new WP_REST_Request('POST', '/wp-admin-agent/v1/conversations/' . $conversation_id);
+        $request->set_body(wp_json_encode([
+            'meta' => [
+                'active_workflow' => ['workflowId' => 'woocommerce_first_time_setup', 'status' => 'collecting'],
+            ],
+        ]));
+        $request->set_header('content-type', 'application/json');
+
+        $response = rest_get_server()->dispatch($request);
+        $stored = $wpdb->get_var($wpdb->prepare(
+            "SELECT messages FROM " . WAA_TABLE_CONVERSATIONS . " WHERE id = %d",
+            $conversation_id
+        ));
+        $decoded = $this->api->decode_conversation_payload($stored);
+
+        $this->assertSame(200, $response->get_status());
+        $this->assertArrayHasKey('debug_log', $decoded['meta']);
+        $this->assertCount(1, $decoded['meta']['debug_log']);
+        $this->assertSame('turn_existing', $decoded['meta']['debug_log'][0]['turn_id']);
+        $this->assertSame('collecting', $decoded['meta']['active_workflow']['status']);
+    }
+
     public function test_create_conversation_derives_title_from_first_user_message_when_title_is_missing(): void {
         global $wpdb;
 
