@@ -881,6 +881,7 @@ class WAA_REST_API {
         $registry->register(new WAA_Tool_Search_Icon());
         $registry->register(new WAA_Tool_Set_Site_Icon());
         $registry->register(new WAA_Tool_Search_Images());
+        $registry->register(new WAA_Tool_Generate_Image());
         $registry->register(new WAA_Tool_Set_Post_Image());
         $registry->register(new WAA_Tool_Get_WooCommerce_Status());
         $registry->register(new WAA_Tool_Update_WooCommerce_Settings());

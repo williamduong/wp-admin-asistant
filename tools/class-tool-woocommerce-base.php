@@ -101,4 +101,18 @@ abstract class WAA_Tool_WooCommerce_Base extends WAA_Tool_Base {
             return new WP_Error('woo_image_import_failed', $e->getMessage());
         }
     }
+
+    protected function resolve_existing_attachment(mixed $attachment_id): int|WP_Error {
+        $attachment_id = (int) $attachment_id;
+
+        if ($attachment_id <= 0) {
+            return new WP_Error('woo_image_attachment_invalid', 'image_attachment_id must be a valid Media Library attachment ID.');
+        }
+
+        if (!wp_attachment_is_image($attachment_id)) {
+            return new WP_Error('woo_image_attachment_invalid', "Attachment {$attachment_id} is not an image or does not exist.");
+        }
+
+        return $attachment_id;
+    }
 }

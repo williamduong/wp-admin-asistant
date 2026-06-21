@@ -26,6 +26,7 @@ class WAA_Tool_Update_WooCommerce_Product extends WAA_Tool_WooCommerce_Base {
                 'catalog_visibility' => ['type' => 'string', 'enum' => ['visible', 'catalog', 'search', 'hidden']],
                 'categories' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'image_url' => ['type' => 'string'],
+                'image_attachment_id' => ['type' => 'integer'],
             ],
             'required' => ['product_id'],
         ];
@@ -82,8 +83,10 @@ class WAA_Tool_Update_WooCommerce_Product extends WAA_Tool_WooCommerce_Base {
             wp_set_object_terms($product_id, array_map('sanitize_text_field', $input['categories']), 'product_cat');
         }
 
-        if (!empty($input['image_url'])) {
-            $image_id = $this->maybe_import_image((string) $input['image_url'], $product->get_name());
+        if (!empty($input['image_attachment_id']) || !empty($input['image_url'])) {
+            $image_id = !empty($input['image_attachment_id'])
+                ? $this->resolve_existing_attachment($input['image_attachment_id'])
+                : $this->maybe_import_image((string) $input['image_url'], $product->get_name());
             if (is_wp_error($image_id)) {
                 return [
                     'success' => true,
