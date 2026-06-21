@@ -68,7 +68,12 @@ export default function ChatWidget({ isOpen, onToggle }) {
             {isOpen && (
                 <div className={styles.panel} ref={panelRef} role="dialog" aria-label="AI Assistant">
                     <div className={styles.header}>
-                        <span className={styles.headerTitle}>🤖 Admin Assistant</span>
+                        <div className={styles.headerIdentity}>
+                            <span className={styles.headerTitle}>🤖 Admin Assistant</span>
+                            <span className={styles.headerMeta}>
+                                {conversationId ? `Session #${conversationId}` : 'Session chưa được tạo'}
+                            </span>
+                        </div>
                         <div className={styles.headerActions}>
                             <button
                                 className={styles.iconBtn}

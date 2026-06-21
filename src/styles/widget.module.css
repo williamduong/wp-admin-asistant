@@ -64,9 +64,22 @@
     flex-shrink: 0;
 }
 
+.headerIdentity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
 .headerTitle {
     font-weight: 600;
     font-size: 14px;
+}
+
+.headerMeta {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.2;
 }
 
 .headerActions {
